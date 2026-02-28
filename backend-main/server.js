@@ -17,6 +17,11 @@ mongoose.connect(process.env.MONGO_URI)
   .catch((err) => console.log('❌ MongoDB connection error:', err));
 
 // 4. Route Connections
+// --- NEW: Auth Routes for Login/Register ---
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
+// Existing Report Routes
 const reportRoutes = require('./routes/reportRoutes');
 app.use('/api/reports', reportRoutes);
 
