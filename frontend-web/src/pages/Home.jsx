@@ -9,10 +9,448 @@ import {
   Thermometer, Droplets, HeartPulse, Microscope,
   Brain, Cpu, Sparkles, Fingerprint, Scan,
   BadgeCheck, Target, Compass, Navigation, Play,
-  Rocket, Stars, Infinity, Gem, CircleDot, Gauge
+  Rocket, Stars, Infinity, Gem, CircleDot, Gauge,
+  MessageCircle, Send, Bot, Maximize2, Minimize2
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import '../App.css';
+
+// Floating Chat Component - Define before the main component
+function FloatingChat({ isOpen, onClose, onOpen }) {
+  const [messages, setMessages] = useState([
+    { role: 'ai', text: "Hi! I'm your AI health assistant. How can I help you today? 😊" }
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const messagesEndRef = useRef(null);
+  const chatRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Handle click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (chatRef.current && !chatRef.current.contains(event.target) && isOpen && !isMinimized) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen, isMinimized, onClose]);
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const userMessage = { role: 'user', text: input };
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    // Simulate AI response (replace with actual API call)
+    setTimeout(() => {
+      const responses = [
+        "Based on your symptoms, I'd recommend consulting with a healthcare provider.",
+        "Remember to stay hydrated and get plenty of rest! 💧",
+        "I can help you understand your medical reports. Would you like to upload one?",
+        "Your health metrics are looking good! Keep up the healthy habits! 🌟",
+        "I'm here 24/7 to answer your health questions. What else would you like to know?"
+      ];
+      const aiReply = { 
+        role: 'ai', 
+        text: responses[Math.floor(Math.random() * responses.length)]
+      };
+      setMessages(prev => [...prev, aiReply]);
+      setIsLoading(false);
+    }, 1000);
+  };
+
+  const suggestedQuestions = [
+    "What do my blood test results mean?",
+    "Symptoms of diabetes?",
+    "Healthy diet tips",
+    "Medication reminders"
+  ];
+
+  if (!isOpen) {
+    return (
+      <button 
+        onClick={onOpen}
+        style={floatingChatStyles.floatingChatButton}
+        className="floating-chat-btn"
+      >
+        <div style={floatingChatStyles.floatingChatGlow}></div>
+        <Bot size={28} color="#ffffff" />
+        <span style={floatingChatStyles.floatingChatBadge}>1</span>
+      </button>
+    );
+  }
+
+  return (
+    <div 
+      ref={chatRef}
+      style={{
+        ...floatingChatStyles.floatingChatWindow,
+        height: isMinimized ? '60px' : '500px',
+        width: isMinimized ? '300px' : '350px',
+      }}
+      className="floating-chat-window"
+    >
+      {/* Chat Header */}
+      <div style={floatingChatStyles.floatingChatHeader}>
+        <div style={floatingChatStyles.floatingChatHeaderLeft}>
+          <div style={floatingChatStyles.floatingChatAvatar}>
+            <Bot size={18} color="#9b59b6" />
+          </div>
+          <div>
+            <h4 style={floatingChatStyles.floatingChatTitle}>AI Health Assistant</h4>
+            <div style={floatingChatStyles.floatingChatStatus}>
+              <span style={floatingChatStyles.floatingStatusDot}></span>
+              <span>Online</span>
+            </div>
+          </div>
+        </div>
+        <div style={floatingChatStyles.floatingChatHeaderRight}>
+          <button 
+            onClick={() => setIsMinimized(!isMinimized)}
+            style={floatingChatStyles.floatingChatButtonSmall}
+          >
+            {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
+          </button>
+          <button 
+            onClick={onClose}
+            style={floatingChatStyles.floatingChatButtonSmall}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      </div>
+
+      {!isMinimized && (
+        <>
+          {/* Chat Messages */}
+          <div style={floatingChatStyles.floatingChatMessages}>
+            {messages.map((msg, index) => (
+              <div 
+                key={index} 
+                style={{
+                  ...floatingChatStyles.floatingMessageWrapper,
+                  justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                }}
+              >
+                {msg.role === 'ai' && (
+                  <div style={floatingChatStyles.floatingMessageAvatar}>
+                    <Bot size={12} color="#9b59b6" />
+                  </div>
+                )}
+                <div style={{
+                  ...floatingChatStyles.floatingMessageBubble,
+                  background: msg.role === 'user' 
+                    ? 'linear-gradient(135deg, #9b59b6, #8e44ad)'
+                    : '#f1f2f6',
+                  color: msg.role === 'user' ? '#ffffff' : '#2c3e50',
+                  borderBottomRightRadius: msg.role === 'user' ? '4px' : '12px',
+                  borderBottomLeftRadius: msg.role === 'user' ? '12px' : '4px',
+                }}>
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+            
+            {isLoading && (
+              <div style={floatingChatStyles.floatingLoadingWrapper}>
+                <div style={floatingChatStyles.floatingLoadingAvatar}>
+                  <Bot size={12} color="#9b59b6" />
+                </div>
+                <div style={floatingChatStyles.floatingLoadingBubble}>
+                  <div style={floatingChatStyles.typingIndicator}>
+                    <span style={floatingChatStyles.typingDot}></span>
+                    <span style={{...floatingChatStyles.typingDot, animationDelay: '0.2s'}}></span>
+                    <span style={{...floatingChatStyles.typingDot, animationDelay: '0.4s'}}></span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Suggested Questions */}
+            {messages.length === 1 && !isLoading && (
+              <div style={floatingChatStyles.floatingSuggested}>
+                {suggestedQuestions.map((q, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setInput(q)}
+                    style={floatingChatStyles.floatingSuggestedButton}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input Area */}
+          <form onSubmit={handleSend} style={floatingChatStyles.floatingInputArea}>
+            <input 
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type a message..."
+              style={floatingChatStyles.floatingInput}
+            />
+            <button 
+              type="submit"
+              disabled={!input.trim()}
+              style={{
+                ...floatingChatStyles.floatingSendButton,
+                background: !input.trim() ? '#bdc3c7' : '#9b59b6',
+              }}
+            >
+              <Send size={16} color="white" />
+            </button>
+          </form>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Floating chat styles - Define before the main styles
+const floatingChatStyles = {
+  floatingChatButton: {
+    position: 'fixed',
+    bottom: '30px',
+    right: '30px',
+    width: '65px',
+    height: '65px',
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #9b59b6, #8e44ad)',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 10px 30px rgba(155,89,182,0.4)',
+    zIndex: 1000,
+    transition: 'all 0.3s ease',
+  },
+  floatingChatGlow: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    width: '75px',
+    height: '75px',
+    background: 'radial-gradient(circle, rgba(155,89,182,0.4) 0%, transparent 70%)',
+    transform: 'translate(-50%, -50%)',
+    borderRadius: '50%',
+    animation: 'pulse 2s ease-in-out infinite',
+  },
+  floatingChatBadge: {
+    position: 'absolute',
+    top: '-5px',
+    right: '-5px',
+    background: '#e74c3c',
+    color: '#ffffff',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    width: '22px',
+    height: '22px',
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '2px solid #ffffff',
+  },
+  floatingChatWindow: {
+    position: 'fixed',
+    bottom: '100px',
+    right: '30px',
+    background: '#ffffff',
+    borderRadius: '20px',
+    boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+    zIndex: 1000,
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    transition: 'all 0.3s ease',
+    border: '2px solid rgba(155,89,182,0.3)',
+  },
+  floatingChatHeader: {
+    padding: '15px',
+    background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)',
+    borderBottom: '2px solid #dee2e6',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  floatingChatHeaderLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+  },
+  floatingChatAvatar: {
+    width: '32px',
+    height: '32px',
+    borderRadius: '10px',
+    background: 'rgba(155,89,182,0.1)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '2px solid rgba(155,89,182,0.3)',
+  },
+  floatingChatTitle: {
+    margin: 0,
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#2c3e50',
+  },
+  floatingChatStatus: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    fontSize: '11px',
+    color: '#27ae60',
+  },
+  floatingStatusDot: {
+    width: '6px',
+    height: '6px',
+    borderRadius: '50%',
+    background: '#2ecc71',
+    animation: 'pulse 2s ease-in-out infinite',
+  },
+  floatingChatHeaderRight: {
+    display: 'flex',
+    gap: '5px',
+  },
+  floatingChatButtonSmall: {
+    width: '28px',
+    height: '28px',
+    borderRadius: '8px',
+    background: 'rgba(255,255,255,0.5)',
+    border: '1px solid #dee2e6',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#7f8c8d',
+  },
+  floatingChatMessages: {
+    flex: 1,
+    padding: '15px',
+    overflowY: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    background: '#f8f9fa',
+  },
+  floatingMessageWrapper: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '8px',
+  },
+  floatingMessageAvatar: {
+    width: '24px',
+    height: '24px',
+    borderRadius: '8px',
+    background: 'rgba(155,89,182,0.1)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid rgba(155,89,182,0.3)',
+  },
+  floatingMessageBubble: {
+    padding: '10px 12px',
+    borderRadius: '12px',
+    fontSize: '13px',
+    lineHeight: '1.5',
+    maxWidth: '85%',
+    wordWrap: 'break-word',
+  },
+  floatingLoadingWrapper: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '8px',
+  },
+  floatingLoadingAvatar: {
+    width: '24px',
+    height: '24px',
+    borderRadius: '8px',
+    background: 'rgba(155,89,182,0.1)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid rgba(155,89,182,0.3)',
+  },
+  floatingLoadingBubble: {
+    background: '#ffffff',
+    padding: '10px 15px',
+    borderRadius: '12px 12px 12px 4px',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
+  },
+  typingIndicator: {
+    display: 'flex',
+    gap: '4px',
+  },
+  typingDot: {
+    width: '6px',
+    height: '6px',
+    borderRadius: '50%',
+    background: '#9b59b6',
+    animation: 'typing 1.4s infinite ease-in-out',
+  },
+  floatingSuggested: {
+    padding: '10px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '5px',
+  },
+  floatingSuggestedButton: {
+    padding: '8px 12px',
+    background: '#ffffff',
+    border: '1px solid #e0e0e0',
+    borderRadius: '20px',
+    fontSize: '11px',
+    color: '#2c3e50',
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'all 0.3s ease',
+  },
+  floatingInputArea: {
+    padding: '12px',
+    background: '#ffffff',
+    borderTop: '2px solid #f0f0f0',
+    display: 'flex',
+    gap: '8px',
+  },
+  floatingInput: {
+    flex: 1,
+    padding: '10px 12px',
+    borderRadius: '20px',
+    border: '2px solid #e0e0e0',
+    fontSize: '13px',
+    outline: 'none',
+    transition: 'all 0.3s ease',
+  },
+  floatingSendButton: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    border: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+  },
+};
 
 function Home() {
   const [scrolled, setScrolled] = useState(false);
@@ -21,6 +459,7 @@ function Home() {
   const [activeFeature, setActiveFeature] = useState(null);
   const [loading, setLoading] = useState(true);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   
   const heroRef = useRef(null);
   const featuresRef = useRef(null);
@@ -104,7 +543,7 @@ function Home() {
     { icon: Activity, label: 'Health Score', value: '85', unit: '%', color: '#9b59b6', bgColor: 'rgba(155, 89, 182, 0.1)', trend: '+5% vs last month' }
   ];
 
-  // Redesigned features with more spacious layout
+  // Features array with AI Health Chat added
   const features = [
     {
       icon: Brain,
@@ -165,6 +604,18 @@ function Home() {
       status: 'active',
       metrics: ['Real-time ECG', 'Blood pressure', 'Heart rate'],
       iconBg: 'linear-gradient(135deg, #e84342, #c0392b)'
+    },
+    {
+      icon: MessageCircle,
+      title: 'AI Health Chat',
+      description: '24/7 AI-powered health assistant ready to answer your medical questions instantly.',
+      color: '#9b59b6',
+      gradient: 'linear-gradient(135deg, #9b59b620, #8e44ad20)',
+      borderColor: '#9b59b640',
+      link: '/chat',
+      status: 'active',
+      metrics: ['Instant responses', 'Medical knowledge', 'Symptom checker'],
+      iconBg: 'linear-gradient(135deg, #9b59b6, #8e44ad)'
     },
     {
       icon: Cpu,
@@ -540,7 +991,7 @@ function Home() {
                     </span>
                   ) : (
                     <div style={{ ...styles.featureLink, color: feature.color }}>
-                      <span>Learn more</span>
+                      <span>{feature.title === 'AI Health Chat' ? 'Chat Now' : 'Learn more'}</span>
                       <ChevronRight size={16} style={styles.featureLinkIcon} />
                     </div>
                   )}
@@ -790,6 +1241,13 @@ function Home() {
         </button>
       )}
 
+      {/* Floating Chat Component */}
+      <FloatingChat 
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        onOpen={() => setIsChatOpen(true)}
+      />
+
       {/* Add keyframe animations */}
       <style jsx>{`
         @keyframes float-particle {
@@ -830,6 +1288,17 @@ function Home() {
           100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
         }
         
+        @keyframes typing {
+          0%, 60%, 100% { transform: translateY(0); }
+          30% { transform: translateY(-10px); }
+        }
+        
+        @keyframes chatPulse {
+          0% { box-shadow: 0 0 0 0 rgba(155,89,182,0.7); }
+          70% { box-shadow: 0 0 0 15px rgba(155,89,182,0); }
+          100% { box-shadow: 0 0 0 0 rgba(155,89,182,0); }
+        }
+        
         .btn-3d:hover {
           transform: translateY(-2px);
           box-shadow: 0 20px 40px rgba(52,152,219,0.3);
@@ -861,6 +1330,18 @@ function Home() {
           box-shadow: 0 15px 30px rgba(52,152,219,0.4);
         }
         
+        .floating-chat-btn {
+          animation: chatPulse 2s infinite;
+        }
+        
+        .floating-chat-btn:hover {
+          transform: scale(1.1);
+        }
+        
+        .floating-chat-window {
+          animation: slideIn 0.3s ease-out;
+        }
+        
         .slide-in {
           animation: slideIn 0.5s ease-out;
         }
@@ -868,11 +1349,11 @@ function Home() {
         @keyframes slideIn {
           from {
             opacity: 0;
-            transform: translateX(-20px);
+            transform: translateY(20px);
           }
           to {
             opacity: 1;
-            transform: translateX(0);
+            transform: translateY(0);
           }
         }
         

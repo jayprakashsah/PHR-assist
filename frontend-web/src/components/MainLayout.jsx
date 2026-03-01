@@ -81,7 +81,8 @@ function MainLayout() {
       '/home': { color: '#3498db', bg: 'rgba(52,152,219,0.1)' },
       '/dashboard': { color: '#2ecc71', bg: 'rgba(46,204,113,0.1)' },
       '/emergency': { color: '#e74c3c', bg: 'rgba(231,76,60,0.1)' },
-      '/hospitals': { color: '#9b59b6', bg: 'rgba(155,89,182,0.1)' }
+      '/hospitals': { color: '#9b59b6', bg: 'rgba(155,89,182,0.1)' },
+      '/reminders': { color: '#f39c12', bg: 'rgba(243,156,18,0.1)' }
     };
     
     const activeColor = colors[path]?.color || '#3498db';
@@ -178,6 +179,10 @@ function MainLayout() {
               <Link to="/dashboard" style={getTabStyle('/dashboard')} className="nav-link-3d">
                 <FileText size={18} />
                 <span>Reports</span>
+              </Link>
+              <Link to="/reminders" style={getTabStyle('/reminders')} className="nav-link-3d">
+                <Bell size={18} />
+                <span>Reminders</span>
               </Link>
               <Link to="/emergency" style={getTabStyle('/emergency')} className="nav-link-3d">
                 <AlertCircle size={18} />
@@ -411,6 +416,9 @@ function MainLayout() {
             </Link>
             <Link to="/dashboard" style={getTabStyle('/dashboard')} onClick={() => setMobileMenuOpen(false)}>
               <FileText size={18} /> Reports
+            </Link>
+            <Link to="/reminders" style={getTabStyle('/reminders')} onClick={() => setMobileMenuOpen(false)}>
+              <Bell size={18} /> Reminders
             </Link>
             <Link to="/emergency" style={getTabStyle('/emergency')} onClick={() => setMobileMenuOpen(false)}>
               <AlertCircle size={18} /> Emergency

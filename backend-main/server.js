@@ -21,6 +21,10 @@ mongoose.connect(process.env.MONGO_URI)
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
+// --- NEW: Medicine Reminder System ---
+const reminderRoutes = require('./routes/reminderRoutes');
+app.use('/api/reminders', reminderRoutes);
+
 // Existing Report Routes
 const reportRoutes = require('./routes/reportRoutes');
 app.use('/api/reports', reportRoutes);

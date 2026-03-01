@@ -7,6 +7,8 @@ import Home from './pages/Home';
 import Profile from './pages/Profile';
 import Emergency from './pages/Emergency';
 import Hospitals from './pages/Hospitals';
+import ChatAgent from './pages/ChatAgent';
+import Reminders from './pages/Reminders';
 
 function App() {
   return (
@@ -27,6 +29,8 @@ function App() {
           <Route path="/profile" element={<Profile />} />
 <Route path="/hospitals" element={<Hospitals />} />          {/* We also keep Emergency available inside the dashboard just in case */}
           <Route path="/emergency" element={<Emergency />} />
+          <Route path="/chat" element={<ChatAgent />} />
+          <Route path="/reminders" element={<Reminders />} />
         </Route>
 
         {/* Catch-all redirects back to the emergency home page */}
