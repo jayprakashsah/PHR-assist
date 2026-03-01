@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Upload, Activity, FileText, Save, Volume2 } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Upload, Activity, FileText, Save, Volume2, ArrowLeft } from 'lucide-react';
 import '../App.css'; 
 
 function Scanner() {
@@ -8,8 +9,16 @@ function Scanner() {
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
+  const navigate = useNavigate();
 
-  // 1. Send the image to the Python AI Server (Runs on 8000)
+  // Security Check: If not logged in, send them to the login page!
+  useEffect(() => {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      navigate('/');
+    }
+  }, [navigate]);
+
   const handleAnalyze = async (e) => {
     e.preventDefault();
     if (!file) return alert("Please select a report image first!");
@@ -25,7 +34,6 @@ function Scanner() {
       const response = await axios.post("http://localhost:8000/analyze-report", formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
-      
       setReportData(response.data.data);
     } catch (error) {
       console.error("Error analyzing report:", error);
@@ -35,13 +43,24 @@ function Scanner() {
     }
   };
 
-  // 2. Save the AI results to our Node.js Database (Now running on 5001)
   const handleSaveToDB = async () => {
     try {
-      // --- FIXED: Changed port from 5000 to 5001 to bypass Mac AirPlay block ---
-      await axios.post("http://localhost:5001/api/reports/add", reportData);
+      // 1. Get the logged-in user's secure ID
+      const userId = localStorage.getItem('userId');
+      
+      // 2. Attach the patientId to the report data so MongoDB knows who owns it!
+      const payloadToSave = {
+        ...reportData,
+        patientId: userId 
+      };
+
+      await axios.post("http://localhost:5001/api/reports/add", payloadToSave);
       setIsSaved(true);
-      alert("Report securely saved to your health profile!");
+      alert("Report securely saved to your private health profile!");
+      
+      // Send them back to the dashboard to see it!
+      setTimeout(() => navigate('/dashboard'), 1500);
+      
     } catch (error) {
       console.error("Error saving report:", error);
       alert("Failed to save. Is the Node.js server running on port 5001?");
@@ -50,12 +69,16 @@ function Scanner() {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: 'sans-serif' }}>
-      <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#2c3e50' }}>
-        <Activity color="#e74c3c" /> Smart PHR Scanner
-      </h1>
-      <p>Upload a photo of your medical report to digitize it, summarize it, and generate a voice memo.</p>
+      
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#2c3e50', margin: 0 }}>
+          <Activity color="#e74c3c" /> Smart Scanner
+        </h1>
+        <Link to="/dashboard" style={{ textDecoration: 'none', color: '#3498db', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold' }}>
+          <ArrowLeft size={18} /> Back to Dashboard
+        </Link>
+      </div>
 
-      {/* Upload Section */}
       <div style={{ border: '2px dashed #bdc3c7', padding: '30px', borderRadius: '10px', textAlign: 'center', backgroundColor: '#f9f9f9' }}>
         <input 
           type="file" 
@@ -74,7 +97,6 @@ function Scanner() {
         </button>
       </div>
 
-      {/* Results Section */}
       {reportData && (
         <div style={{ marginTop: '30px', padding: '20px', border: '1px solid #ecf0f1', borderRadius: '10px', backgroundColor: '#fff', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#27ae60' }}>
@@ -88,38 +110,13 @@ function Scanner() {
             <p><strong>Diagnosis:</strong> {reportData.diseaseName}</p>
           </div>
 
-          <div style={{ backgroundColor: '#f1f8ff', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
-            <strong>AI Summary:</strong>
-            <p style={{ margin: '5px 0 0 0' }}>{reportData.extractedText}</p>
-          </div>
-
-          {reportData.voiceReportUrl && (
-            <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Volume2 color="#8e44ad" />
-              <strong>Voice Summary:</strong>
-              <audio controls src={reportData.voiceReportUrl} style={{ height: '30px' }}></audio>
-            </div>
-          )}
-
-          {/* Medicines List */}
-          {reportData.medicines && reportData.medicines.length > 0 && (
-            <div style={{ marginBottom: '20px' }}>
-              <strong>Prescribed Medicines:</strong>
-              <ul>
-                {reportData.medicines.map((med, index) => (
-                  <li key={index}><strong>{med.name}</strong> - {med.specification}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           <button 
             onClick={handleSaveToDB}
             disabled={isSaved}
-            style={{ padding: '10px 20px', backgroundColor: isSaved ? '#95a5a6' : '#2ecc71', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', justifyContent: 'center' }}
+            style={{ padding: '12px 20px', backgroundColor: isSaved ? '#95a5a6' : '#2ecc71', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', justifyContent: 'center', fontWeight: 'bold' }}
           >
             <Save size={18} />
-            {isSaved ? "Saved to Database" : "Save Record to Profile"}
+            {isSaved ? "Saved to Database" : "Save Record to Private Profile"}
           </button>
         </div>
       )}

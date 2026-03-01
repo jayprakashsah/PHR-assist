@@ -17,7 +17,7 @@ mongoose.connect(process.env.MONGO_URI)
   .catch((err) => console.log('❌ MongoDB connection error:', err));
 
 // 4. Route Connections
-// --- NEW: Auth Routes for Login/Register ---
+// Auth Routes for Login/Register
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
@@ -25,8 +25,16 @@ app.use('/api/auth', authRoutes);
 const reportRoutes = require('./routes/reportRoutes');
 app.use('/api/reports', reportRoutes);
 
-// Start the server
-const PORT = process.env.PORT || 5000;
+// --- NEW: The Geospatial Hospital Engine ---
+const hospitalRoutes = require('./routes/hospitalRoutes');
+app.use('/api/hospitals', hospitalRoutes);
+
+// --- NEW: The Emergency SOS Dispatcher ---
+const sosRoutes = require('./routes/sosRoutes');
+app.use('/api/sos', sosRoutes);
+
+// Start the server (Fallback set to 5001 to avoid Mac AirPlay conflicts)
+const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });

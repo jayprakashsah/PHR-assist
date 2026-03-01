@@ -13,10 +13,9 @@ from gtts import gTTS
 from dotenv import load_dotenv
 from PIL import Image
 
-# Load the API key from the .env file
 load_dotenv()
 
-app = FastAPI(title="Smart PHR AI Engine")
+app = FastAPI(title="Smart PHR AI Engine PRO")
 
 app.add_middleware(
     CORSMiddleware,
@@ -28,38 +27,43 @@ app.add_middleware(
 
 client = genai.Client()
 
-# Create a folder to save the generated audio files
 os.makedirs("audio_reports", exist_ok=True)
 app.mount("/audio", StaticFiles(directory="audio_reports"), name="audio")
-
-@app.get("/")
-def read_root():
-    return {"message": "🤖 Python AI Backend is ready!"}
 
 @app.post("/analyze-report")
 async def analyze_report(file: UploadFile = File(...)):
     try:
-        print(f"\n📥 Received file: {file.filename}")
+        print(f"\n📥 Received file for PRO analysis: {file.filename}")
         
-        # 1. Read the image
         image_data = await file.read()
         image = Image.open(io.BytesIO(image_data))
-        print("✅ Image loaded successfully")
         
+        # --- THE ENTERPRISE CLINICAL PROMPT ---
+        # Strictly factual, zero fluff, highly professional.
         prompt = """
-        Analyze this medical report. Extract the following details and return strictly as JSON.
+        You are an enterprise medical data extractor. Analyze this medical report and extract the exact details.
+        
+        Return STRICTLY as a JSON object with this exact structure. Do not add markdown formatting to the JSON.
         {
             "doctorName": "name of the doctor",
             "hospitalName": "name of the hospital or clinic",
             "visitDate": "YYYY-MM-DD",
-            "diseaseName": "diagnosis or main symptom",
-            "medicines": [{"name": "medicine name", "specification": "dosage and instructions"}],
-            "extractedText": "A simple 2-sentence summary of this report for the patient to understand."
+            "diseaseName": "The exact diagnosis",
+            "reasonForCondition": "The symptoms or root cause identified in the report",
+            "patientFriendlySummary": "A clear, professional, jargon-free explanation of the report.",
+            "actionPlan": ["Strict clinical step 1", "Strict clinical step 2"],
+            "medicines": [
+                {
+                    "name": "medicine name", 
+                    "specification": "dosage and instructions",
+                    "purpose": "clinical reason for this medicine"
+                }
+            ],
+            "audioScript": "Write a strictly factual, professional audio script. DO NOT use any greetings (no 'hello' or 'hi'). It MUST strictly state exactly these 4 things in order: 1. The diagnosed disease, 2. The hospital visited, 3. The reason or cause of the condition, 4. The exact solution, treatment, or action plan given by the doctor."
         }
         """
         
-        print("🧠 Sending image to Gemini AI (using 2.5-flash)...")
-        # --- FIXED: USING 2.5-FLASH TO BYPASS QUOTA & 404 ERRORS ---
+        print("🧠 Sending image to Gemini AI 2.5-Flash (Clinical Prompt)...")
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=[prompt, image],
@@ -67,30 +71,24 @@ async def analyze_report(file: UploadFile = File(...)):
                 response_mime_type="application/json",
             )
         )
-        print("✅ Received response from Gemini")
         
-        # 2. Parse the JSON
         extracted_data = json.loads(response.text)
-        print("✅ Data extracted successfully")
+        print("✅ Clinical Data extracted successfully")
         
-        # 3. Generate Audio
-        print("🗣️ Generating Audio Summary...")
-        doctor = extracted_data.get('doctorName', 'your doctor')
-        disease = extracted_data.get('diseaseName', 'your condition')
-        summary = extracted_data.get('extractedText', 'Please consult your doctor for details.')
+        # 3. Generate Audio using the strict factual script
+        print("🗣️ Generating Factual Audio Briefing...")
         
-        audio_text = f"Hello. Here is your medical summary. You visited {doctor} for {disease}. {summary}"
-        
+        audio_text = extracted_data.get('audioScript', 'Error reading script. Please check the text report.')
         tts = gTTS(text=audio_text, lang='en')
         
-        # Make sure the filename is safe
         safe_filename = file.filename.split('.')[0] if file.filename else "report"
         audio_filename = f"audio_{safe_filename}.mp3"
         audio_filepath = f"audio_reports/{audio_filename}"
         tts.save(audio_filepath)
         
+        # Map the new summary to our old variable temporarily so the app doesn't break
+        extracted_data["extractedText"] = extracted_data.get("patientFriendlySummary", "")
         extracted_data["voiceReportUrl"] = f"http://localhost:8000/audio/{audio_filename}"
-        print("✅ Audio generated and process complete!")
         
         return JSONResponse(content={"status": "success", "data": extracted_data})
         

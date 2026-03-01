@@ -42,4 +42,31 @@ router.post('/login', async (req, res) => {
   }
 });
 
+
+// 3. GET User Profile Data
+router.get('/profile/:id', async (req, res) => {
+  try {
+    // We use .select('-password') to securely hide the password from the frontend!
+    const user = await User.findById(req.params.id).select('-password');
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching profile", error: error.message });
+  }
+});
+
+// 4. UPDATE User Profile Data
+router.put('/profile/:id', async (req, res) => {
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true } // This tells MongoDB to return the newly updated document
+    ).select('-password');
+    res.status(200).json({ message: "Profile updated successfully!", user: updatedUser });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating profile", error: error.message });
+  }
+});
+
 module.exports = router;
