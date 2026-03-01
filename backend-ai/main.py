@@ -32,7 +32,7 @@ client = genai.Client()
 os.makedirs("audio_reports", exist_ok=True)
 app.mount("/audio", StaticFiles(directory="audio_reports"), name="audio")
 
-# --- 1. REPORT ANALYZER MODULE (Multi-Page + Medicine Timelines) ---
+# --- 1. REPORT ANALYZER MODULE (Multi-Page + Medicine Timelines + X-Ray Vision) ---
 @app.post("/analyze-report")
 async def analyze_report(files: List[UploadFile] = File(...)):
     try:
@@ -45,7 +45,7 @@ async def analyze_report(files: List[UploadFile] = File(...)):
             image = Image.open(io.BytesIO(image_data))
             image_list.append(image)
         
-        # 2. Tell the AI it is looking at a multi-page document and ask for medicine duration
+        # 2. Tell the AI it is looking at a multi-page document and ask for visual scans!
         prompt = """
         You are an enterprise medical data extractor. Analyze this MULTI-PAGE medical report and extract the exact details.
         Synthesize the information across all the provided pages into a single, cohesive summary.
@@ -68,7 +68,9 @@ async def analyze_report(files: List[UploadFile] = File(...)):
                     "frequency": "How often? (e.g., 'Twice a day - Morning & Night')"
                 }
             ],
-            "audioScript": "Write a strictly factual, professional audio script summarizing the diagnosis and action plan. No greetings."
+            "audioScript": "Write a strictly factual, professional audio script summarizing the diagnosis and action plan. No greetings.",
+            "containsVisualScan": "boolean (true or false). Set to true ONLY if there is an actual X-Ray, MRI, CT Scan, or Ultrasound image present in the uploads.",
+            "scanType": "If containsVisualScan is true, what is it? (e.g., 'Chest X-Ray', 'Brain MRI'). If false, return 'None'."
         }
         """
         
@@ -86,7 +88,7 @@ async def analyze_report(files: List[UploadFile] = File(...)):
         )
         
         extracted_data = json.loads(response.text)
-        print("✅ Multi-Page Clinical Data extracted successfully")
+        print(f"✅ Data extracted! Contains Scan: {extracted_data.get('containsVisualScan', False)}")
         
         # 4. Generate Audio
         print("🗣️ Generating Factual Audio Briefing...")
