@@ -9,6 +9,9 @@ import Emergency from './pages/Emergency';
 import Hospitals from './pages/Hospitals';
 import ChatAgent from './pages/ChatAgent';
 import Reminders from './pages/Reminders';
+import ConfirmReminders from './pages/ConfirmReminders';
+import EditReport from './pages/EditReport';
+import Lifestyle from './pages/Lifestyle';
 
 function App() {
   return (
@@ -31,6 +34,9 @@ function App() {
           <Route path="/emergency" element={<Emergency />} />
           <Route path="/chat" element={<ChatAgent />} />
           <Route path="/reminders" element={<Reminders />} />
+          <Route path="/confirm-reminders" element={<ConfirmReminders />} />
+          <Route path="/edit/:id" element={<EditReport />} />
+          <Route path="/lifestyle" element={<Lifestyle />} />
         </Route>
 
         {/* Catch-all redirects back to the emergency home page */}

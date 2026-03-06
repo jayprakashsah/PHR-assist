@@ -1,5 +1,21 @@
+# env
 .env
-.env.local
-.env.development
-.env.production
+
+# python cache
+__pycache__/
+*.pyc
+
+# node
 node_modules/
+
+# generated uploads
+backend-main/uploads/
+
+# generated audio
+backend-ai/audio_reports/
+
+# scans
+backend-ai/scans/
+
+# mac files
+.DS_Store

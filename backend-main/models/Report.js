@@ -18,11 +18,24 @@ const reportSchema = new mongoose.Schema({
       frequency: { type: String }
     }
   ],
+  
+  // --- NEW: VITALS TRACKING (Feature 2) ---
+  vitals: {
+    bloodPressure: { type: String, default: null },
+    heartRate: { type: Number, default: null },
+    temperature: { type: Number, default: null },
+    bloodSugar: { type: Number, default: null }
+  },
+
   voiceReportUrl: { type: String },
   
-  // --- NEW: X-Ray & Visual Scan Data ---
+  // --- X-Ray & Visual Scan Data ---
   containsVisualScan: { type: Boolean, default: false },
   scanType: { type: String, default: "None" },
+  croppedScanUrl: { type: String },
+  
+  // --- Original File Storage ---
+  attachedFiles: [{ type: String }],
   
   createdAt: { type: Date, default: Date.now }
 });
