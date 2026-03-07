@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Activity, Home, FileText, AlertCircle, Building, User, 
+import {
+  Activity, Home, FileText, AlertCircle, Building, User,
   Settings, LogOut, Bell, Shield, Menu, X, ChevronDown,
   Heart, Sparkles, Zap, Moon, Sun, Fingerprint, HelpCircle,
   Maximize2, Minimize2, Wifi, Battery, Cpu, ShieldCheck
 } from 'lucide-react';
 import '../App.css';
+import FloatingChatbot from './FloatingChatbot';
 
 function MainLayout() {
   const [profileOpen, setProfileOpen] = useState(false);
@@ -20,10 +21,10 @@ function MainLayout() {
     { id: 2, text: 'Appointment reminder: Dr. Smith', time: '1 hour ago', read: false },
     { id: 3, text: 'Emergency contact updated', time: '2 days ago', read: true },
   ]);
-  
+
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const userName = localStorage.getItem('userName') || "User";
   const userEmail = localStorage.getItem('userEmail') || "user@example.com";
 
@@ -36,7 +37,7 @@ function MainLayout() {
         setMobileMenuOpen(false);
       }
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [mobileMenuOpen]);
@@ -84,7 +85,7 @@ function MainLayout() {
       '/hospitals': { color: '#9b59b6', bg: 'rgba(155,89,182,0.1)' },
       '/reminders': { color: '#f39c12', bg: 'rgba(243,156,18,0.1)' }
     };
-    
+
     const activeColor = colors[path]?.color || '#3498db';
     const activeBg = colors[path]?.bg || 'rgba(52,152,219,0.1)';
 
@@ -144,9 +145,9 @@ function MainLayout() {
           {/* Logo Section */}
           <div style={styles.logoSection}>
             <div style={styles.logoIcon}>
-              <ShieldCheck 
-                size={windowWidth <= 480 ? 24 : windowWidth <= 768 ? 28 : 32} 
-                color="#3498db" 
+              <ShieldCheck
+                size={windowWidth <= 480 ? 24 : windowWidth <= 768 ? 28 : 32}
+                color="#3498db"
               />
               <div style={{
                 ...styles.logoGlow,
@@ -208,7 +209,7 @@ function MainLayout() {
 
             {/* Fullscreen Toggle - Hidden on mobile */}
             {windowWidth > 768 && (
-              <button 
+              <button
                 onClick={toggleFullscreen}
                 style={styles.iconButton}
                 className="icon-3d"
@@ -219,7 +220,7 @@ function MainLayout() {
 
             {/* Notifications */}
             <div style={styles.notificationContainer} className="notification-container">
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setNotificationsOpen(!notificationsOpen);
@@ -280,7 +281,7 @@ function MainLayout() {
 
             {/* User Profile */}
             <div style={styles.profileContainer} className="profile-container">
-              <div 
+              <div
                 onClick={(e) => {
                   e.stopPropagation();
                   setProfileOpen(!profileOpen);
@@ -332,16 +333,16 @@ function MainLayout() {
                     <div style={styles.profileInfo}>
                       <span style={styles.profileName}>{userName}</span>
                       <span style={styles.profileEmail}>
-                        {windowWidth <= 480 && userEmail.length > 15 
-                          ? `${userEmail.substring(0, 12)}...` 
+                        {windowWidth <= 480 && userEmail.length > 15
+                          ? `${userEmail.substring(0, 12)}...`
                           : userEmail}
                       </span>
                     </div>
                   </div>
-                  
+
                   <div style={styles.profileMenu}>
-                    <Link 
-                      to="/profile" 
+                    <Link
+                      to="/profile"
                       onClick={() => setProfileOpen(false)}
                       style={styles.menuItem}
                     >
@@ -349,30 +350,30 @@ function MainLayout() {
                       <span>My Profile</span>
                       <Sparkles size={12} style={styles.menuIcon} />
                     </Link>
-                    
-                    <Link 
-                      to="/settings" 
+
+                    <Link
+                      to="/settings"
                       onClick={() => setProfileOpen(false)}
                       style={styles.menuItem}
                     >
                       <Settings size={16} />
                       <span>Settings</span>
                     </Link>
-                    
-                    <Link 
-                      to="/help" 
+
+                    <Link
+                      to="/help"
                       onClick={() => setProfileOpen(false)}
                       style={styles.menuItem}
                     >
                       <HelpCircle size={16} />
                       <span>Help & Support</span>
                     </Link>
-                    
+
                     <div style={styles.menuDivider}></div>
-                    
-                    <div 
+
+                    <div
                       onClick={handleLogout}
-                      style={{...styles.menuItem, color: '#e74c3c'}}
+                      style={{ ...styles.menuItem, color: '#e74c3c' }}
                     >
                       <LogOut size={16} />
                       <span>Secure Logout</span>
@@ -389,7 +390,7 @@ function MainLayout() {
 
             {/* Mobile Menu Button - Show on tablet and mobile */}
             {windowWidth <= 1024 && (
-              <button 
+              <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 style={{
                   ...styles.mobileMenuButton,
@@ -432,7 +433,7 @@ function MainLayout() {
             <Link to="/settings" style={getTabStyle('/settings')} onClick={() => setMobileMenuOpen(false)}>
               <Settings size={18} /> Settings
             </Link>
-            <div onClick={handleLogout} style={{...styles.mobileMenuItem, color: '#e74c3c'}}>
+            <div onClick={handleLogout} style={{ ...styles.mobileMenuItem, color: '#e74c3c' }}>
               <LogOut size={18} /> Logout
             </div>
           </div>
@@ -519,6 +520,9 @@ function MainLayout() {
           border-color: rgba(52,152,219,0.3);
         }
       `}</style>
+
+      {/* Global Floating Chatbot - visible on all authenticated pages */}
+      <FloatingChatbot />
     </div>
   );
 }

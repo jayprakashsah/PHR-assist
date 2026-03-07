@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { 
+import {
   Activity, Lock, Mail, User, Shield, Fingerprint,
   Sparkles, Eye, EyeOff, CheckCircle, XCircle,
   Zap, Heart, ShieldCheck, Key, Globe, Cpu,
@@ -21,7 +21,7 @@ function Login() {
   const [focusedField, setFocusedField] = useState(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [rememberMe, setRememberMe] = useState(false);
-  
+
   const navigate = useNavigate();
 
   // Mouse move parallax effect
@@ -75,27 +75,26 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     const endpoint = isRegistering ? '/register' : '/login';
     const payload = isRegistering ? { name, email, password } : { email, password };
 
     try {
       const response = await axios.post(`http://localhost:5001/api/auth${endpoint}`, payload);
-      
-      localStorage.setItem('userId', response.data.userId);
-      localStorage.setItem('userName', response.data.name);
-      localStorage.setItem('userEmail', email);
-      
+
+      // Backend returns `id`, `name`, `email`
+      localStorage.setItem('userId', response.data.id);
+      localStorage.setItem('userName', response.data.name || name);
+      localStorage.setItem('userEmail', response.data.email || email);
+
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
       } else {
         localStorage.removeItem('rememberedEmail');
       }
-      
-      // Show success message
-      alert(`✨ ${response.data.message}`);
+
       navigate('/dashboard');
-      
+
     } catch (error) {
       alert(error.response?.data?.message || "Server error. Is Node.js running?");
     } finally {
@@ -139,7 +138,7 @@ function Login() {
       </div>
 
       {/* Main Login Card */}
-      <div 
+      <div
         style={styles.card}
         className="login-card-3d"
       >
@@ -163,10 +162,10 @@ function Login() {
 
         {/* Form Section */}
         <form onSubmit={handleSubmit} style={styles.form}>
-          
+
           {/* Name Field - Only for Registration */}
           {isRegistering && (
-            <div 
+            <div
               style={{
                 ...styles.inputGroup,
                 ...(focusedField === 'name' ? styles.inputGroupFocused : {})
@@ -175,8 +174,8 @@ function Login() {
               onBlur={() => setFocusedField(null)}
             >
               <User size={18} color={focusedField === 'name' ? '#3498db' : '#95a5a6'} style={styles.inputIcon} />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Full Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -190,7 +189,7 @@ function Login() {
           )}
 
           {/* Email Field */}
-          <div 
+          <div
             style={{
               ...styles.inputGroup,
               ...(focusedField === 'email' ? styles.inputGroupFocused : {})
@@ -199,8 +198,8 @@ function Login() {
             onBlur={() => setFocusedField(null)}
           >
             <Mail size={18} color={focusedField === 'email' ? '#3498db' : '#95a5a6'} style={styles.inputIcon} />
-            <input 
-              type="email" 
+            <input
+              type="email"
               placeholder="Email Address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -208,14 +207,14 @@ function Login() {
               required
             />
             {email && (
-              emailValid ? 
+              emailValid ?
                 <CheckCircle size={16} color="#2ecc71" style={styles.inputValidation} /> :
                 <XCircle size={16} color="#e74c3c" style={styles.inputValidation} />
             )}
           </div>
 
           {/* Password Field */}
-          <div 
+          <div
             style={{
               ...styles.inputGroup,
               ...(focusedField === 'password' ? styles.inputGroupFocused : {})
@@ -224,7 +223,7 @@ function Login() {
             onBlur={() => setFocusedField(null)}
           >
             <Lock size={18} color={focusedField === 'password' ? '#3498db' : '#95a5a6'} style={styles.inputIcon} />
-            <input 
+            <input
               type={showPassword ? "text" : "password"}
               placeholder="Password"
               value={password}
@@ -232,7 +231,7 @@ function Login() {
               style={styles.input}
               required
             />
-            <button 
+            <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               style={styles.eyeButton}
@@ -261,22 +260,22 @@ function Login() {
           {isRegistering && (
             <div style={styles.requirements}>
               <div style={styles.requirementItem}>
-                {password.length >= 8 ? 
-                  <CheckCircle size={12} color="#2ecc71" /> : 
+                {password.length >= 8 ?
+                  <CheckCircle size={12} color="#2ecc71" /> :
                   <XCircle size={12} color="#e74c3c" />
                 }
                 <span>At least 8 characters</span>
               </div>
               <div style={styles.requirementItem}>
-                {/\d/.test(password) ? 
-                  <CheckCircle size={12} color="#2ecc71" /> : 
+                {/\d/.test(password) ?
+                  <CheckCircle size={12} color="#2ecc71" /> :
                   <XCircle size={12} color="#e74c3c" />
                 }
                 <span>Contains a number</span>
               </div>
               <div style={styles.requirementItem}>
-                {/[a-z]/.test(password) && /[A-Z]/.test(password) ? 
-                  <CheckCircle size={12} color="#2ecc71" /> : 
+                {/[a-z]/.test(password) && /[A-Z]/.test(password) ?
+                  <CheckCircle size={12} color="#2ecc71" /> :
                   <XCircle size={12} color="#e74c3c" />
                 }
                 <span>Uppercase & lowercase</span>
@@ -288,7 +287,7 @@ function Login() {
           {!isRegistering && (
             <div style={styles.optionsRow}>
               <label style={styles.rememberMe}>
-                <input 
+                <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
@@ -296,7 +295,7 @@ function Login() {
                 />
                 <span style={styles.checkboxLabel}>Remember me</span>
               </label>
-              <button 
+              <button
                 type="button"
                 style={styles.forgotPassword}
                 onClick={() => alert('Password reset feature coming soon!')}
@@ -307,8 +306,8 @@ function Login() {
           )}
 
           {/* Submit Button */}
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             style={{
               ...styles.submitButton,
               opacity: loading ? 0.7 : 1,
@@ -359,7 +358,7 @@ function Login() {
             <div style={styles.divider}>
               <span style={styles.dividerText}>or</span>
             </div>
-            <button 
+            <button
               style={styles.biometricButton}
               className="btn-outline-3d"
               onClick={() => alert('Biometric login coming soon!')}

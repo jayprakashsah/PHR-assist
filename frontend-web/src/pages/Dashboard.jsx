@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { 
-  PlusCircle, Calendar, Building, ChevronDown, ChevronUp, 
-  Pill, Volume2, LogOut, ShieldCheck, CheckCircle, HelpCircle, 
+import {
+  PlusCircle, Calendar, Building, ChevronDown, ChevronUp,
+  Pill, Volume2, LogOut, ShieldCheck, CheckCircle, HelpCircle,
   Activity, FileText, Heart, Clock, Award, Zap, Cpu,
   Sparkles, BadgeCheck, User, Bell, Settings, Search,
   Download, Share2, Printer, BookOpen, Brain,
@@ -23,7 +23,14 @@ function Dashboard() {
     medications: 0,
     lastVisit: null
   });
-  
+  // Upload modal state
+  const [showUpload, setShowUpload] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+
   const navigate = useNavigate();
   const userId = localStorage.getItem('userId');
   const userName = localStorage.getItem('userName');
@@ -33,14 +40,14 @@ function Dashboard() {
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
     if (!userId) {
-      navigate('/'); 
+      navigate('/');
       return;
     }
 
@@ -48,14 +55,14 @@ function Dashboard() {
       try {
         const response = await axios.get(`http://localhost:5001/api/reports/user/${userId}`);
         setReports(response.data);
-        
+
         // Calculate stats
         const uniqueDocs = [...new Set(response.data.map(r => r.doctorName))].length;
         const meds = response.data.reduce((acc, r) => acc + (r.medicines?.length || 0), 0);
-        const lastVisit = response.data.length > 0 
+        const lastVisit = response.data.length > 0
           ? new Date(Math.max(...response.data.map(r => new Date(r.visitDate))))
           : null;
-        
+
         setStats({
           totalReports: response.data.length,
           uniqueDoctors: uniqueDocs,
@@ -81,11 +88,103 @@ function Dashboard() {
     navigate('/');
   };
 
+  // ── Upload handlers ──────────────────────────────────────────────────
+  const openUpload = () => { setShowUpload(true); setSelectedFiles([]); setUploadSuccess(false); };
+  const closeUpload = () => { setShowUpload(false); setSelectedFiles([]); setUploadSuccess(false); };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const files = Array.from(e.dataTransfer.files);
+    setSelectedFiles(prev => [...prev, ...files]);
+  };
+
+  const handleFileInput = (e) => {
+    const files = Array.from(e.target.files);
+    setSelectedFiles(prev => [...prev, ...files]);
+  };
+
+  const removeFile = (index) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpload = async () => {
+    if (selectedFiles.length === 0) return;
+    setUploading(true);
+    setAnalyzing(true);
+    try {
+      // 1. Send files to Python AI Engine for analysis and audio generation
+      const aiFormData = new FormData();
+      selectedFiles.forEach(f => aiFormData.append('files', f));
+
+      let extractedData = {};
+      try {
+        const aiResponse = await axios.post('http://localhost:8000/analyze-report', aiFormData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        if (aiResponse.data.status === 'success') {
+          extractedData = aiResponse.data.data;
+        }
+      } catch (aiErr) {
+        console.error('AI Analysis failed, falling back to basic upload:', aiErr);
+      }
+
+      setAnalyzing(false);
+
+      // 2. Send files + AI extracted data to Node.js generic backend
+      const nodeFormData = new FormData();
+      selectedFiles.forEach(f => nodeFormData.append('files', f));
+
+      const reportPayload = {
+        patientId: userId,
+        diseaseName: extractedData.diseaseName || selectedFiles.map(f => f.name).join(', '),
+        hospitalName: extractedData.hospitalName || 'Uploaded Document',
+        doctorName: extractedData.doctorName || 'Self Upload',
+        visitDate: extractedData.visitDate || new Date().toISOString(),
+        extractedText: extractedData.extractedText || `Uploaded ${selectedFiles.length} file(s) for analysis.`,
+        reasonForCondition: extractedData.reasonForCondition || '',
+        medicines: extractedData.medicines || [],
+        actionPlan: extractedData.actionPlan || [],
+        voiceReportUrl: extractedData.voiceReportUrl || null,
+      };
+
+      nodeFormData.append('reportData', JSON.stringify(reportPayload));
+
+      await axios.post('http://localhost:5001/api/reports/add', nodeFormData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      // 3. Setup Reminders automatically if medicines exist
+      if (reportPayload.medicines && reportPayload.medicines.length > 0) {
+        try {
+          await axios.post('http://localhost:5001/api/reminders/add-bulk', {
+            userId: userId,
+            medicines: reportPayload.medicines
+          });
+        } catch (remErr) {
+          console.error('Failed to set automatic reminders:', remErr);
+        }
+      }
+
+      setUploadSuccess(true);
+      // Refresh reports list
+      const res = await axios.get(`http://localhost:5001/api/reports/user/${userId}`);
+      setReports(res.data);
+      setStats(prev => ({ ...prev, totalReports: res.data.length }));
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Upload failed. Please ensure both Node and AI servers are running.');
+    } finally {
+      setUploading(false);
+      setAnalyzing(false);
+    }
+  };
+
   const filteredReports = reports.filter(report => {
     const matchesSearch = report.diseaseName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         report.hospitalName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         report.doctorName?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+      report.hospitalName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.doctorName?.toLowerCase().includes(searchTerm.toLowerCase());
+
     if (filterDate === 'all') return matchesSearch;
     if (filterDate === 'month') {
       const oneMonthAgo = new Date();
@@ -157,7 +256,7 @@ function Dashboard() {
               </div>
             )}
           </div>
-          
+
           <div style={styles.headerRight}>
             <button style={{
               ...styles.iconButton,
@@ -184,10 +283,10 @@ function Dashboard() {
       {/* Stats Dashboard - Responsive grid */}
       <div style={{
         ...styles.statsGrid,
-        gridTemplateColumns: windowWidth <= 480 
-          ? '1fr' 
-          : windowWidth <= 768 
-            ? 'repeat(2, 1fr)' 
+        gridTemplateColumns: windowWidth <= 480
+          ? '1fr'
+          : windowWidth <= 768
+            ? 'repeat(2, 1fr)'
             : 'repeat(4, 1fr)',
         padding: windowWidth <= 480 ? '15px' : windowWidth <= 768 ? '20px' : '30px',
       }}>
@@ -270,14 +369,14 @@ function Dashboard() {
               style={styles.searchInput}
             />
           </div>
-          
+
           <div style={{
             ...styles.filterContainer,
             flexDirection: windowWidth <= 480 ? 'column' : 'row',
             width: windowWidth <= 480 ? '100%' : 'auto',
           }}>
-            <select 
-              value={filterDate} 
+            <select
+              value={filterDate}
               onChange={(e) => setFilterDate(e.target.value)}
               style={{
                 ...styles.filterSelect,
@@ -288,15 +387,21 @@ function Dashboard() {
               <option value="month">Last 30 Days</option>
               <option value="year">Last Year</option>
             </select>
-            
-            <Link to="/scan" style={{
-              ...styles.uploadButton,
-              width: windowWidth <= 480 ? '100%' : 'auto',
-              justifyContent: 'center',
-            }} className="btn-3d">
+
+            <button
+              onClick={openUpload}
+              style={{
+                ...styles.uploadButton,
+                width: windowWidth <= 480 ? '100%' : 'auto',
+                justifyContent: 'center',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+              className="btn-3d"
+            >
               <PlusCircle size={18} />
               <span>{windowWidth <= 480 ? 'Upload' : 'Upload Report'}</span>
-            </Link>
+            </button>
           </div>
         </div>
 
@@ -321,10 +426,10 @@ function Dashboard() {
               {searchTerm ? 'Try adjusting your search criteria' : 'Upload your first medical report to get started'}
             </p>
             {!searchTerm && (
-              <Link to="/scan" style={styles.emptyStateButton} className="btn-3d">
+              <button onClick={openUpload} style={{ ...styles.emptyStateButton, border: 'none', cursor: 'pointer' }} className="btn-3d">
                 <PlusCircle size={18} />
                 Upload Your First Report
-              </Link>
+              </button>
             )}
           </div>
         ) : (
@@ -339,19 +444,19 @@ function Dashboard() {
                   }}>{monthYear}</h3>
                   <div style={styles.timelineLine}></div>
                 </div>
-                
+
                 <div style={{
                   ...styles.reportsGrid,
-                  gridTemplateColumns: windowWidth <= 768 
-                    ? '1fr' 
+                  gridTemplateColumns: windowWidth <= 768
+                    ? '1fr'
                     : 'repeat(auto-fill, minmax(500px, 1fr))',
                 }}>
                   {monthReports.map((report) => {
                     const isExpanded = expandedId === report._id;
 
                     return (
-                      <div 
-                        key={report._id} 
+                      <div
+                        key={report._id}
                         style={{
                           ...styles.reportCard,
                           ...(isExpanded ? styles.reportCardExpanded : {})
@@ -359,7 +464,7 @@ function Dashboard() {
                         className="feature-card-3d"
                       >
                         {/* Card Header */}
-                        <div 
+                        <div
                           onClick={() => toggleExpand(report._id)}
                           style={styles.reportHeader}
                         >
@@ -392,7 +497,7 @@ function Dashboard() {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div style={styles.reportHeaderRight}>
                             {report.voiceReportUrl && (
                               <div style={styles.audioBadge}>
@@ -400,8 +505,8 @@ function Dashboard() {
                               </div>
                             )}
                             <div style={styles.expandIcon}>
-                              {isExpanded ? 
-                                <ChevronUp size={20} color="#3498db" /> : 
+                              {isExpanded ?
+                                <ChevronUp size={20} color="#3498db" /> :
                                 <ChevronDown size={20} color="#7f8c8d" />
                               }
                             </div>
@@ -417,7 +522,7 @@ function Dashboard() {
                                 <Stethoscope size={16} color="#3498db" />
                                 <span>Dr. {report.doctorName}</span>
                               </div>
-                              
+
                               {report.reasonForCondition && (
                                 <div style={styles.reasonBox}>
                                   <HelpCircle size={16} color="#e74c3c" />
@@ -490,13 +595,13 @@ function Dashboard() {
                               }}>
                                 <Volume2 size={18} color="#e67e22" />
                                 <span style={styles.audioLabel}>Clinical Audio Summary</span>
-                                <audio 
-                                  controls 
-                                  src={report.voiceReportUrl} 
+                                <audio
+                                  controls
+                                  src={report.voiceReportUrl}
                                   style={{
                                     ...styles.audioElement,
                                     width: windowWidth <= 480 ? '100%' : 'auto',
-                                  }} 
+                                  }}
                                 />
                               </div>
                             )}
@@ -532,6 +637,99 @@ function Dashboard() {
         )}
       </div>
 
+      {/* ── Upload Modal ──────────────────────────────────────────────── */}
+      {showUpload && (
+        <div style={styles.modalOverlay} onClick={closeUpload}>
+          <div style={styles.modalBox} onClick={e => e.stopPropagation()}>
+
+            {uploadSuccess ? (
+              <div style={styles.successBox}>
+                <CheckCircle size={56} color="#2ecc71" />
+                <h3 style={{ color: '#fff', margin: '16px 0 8px', fontSize: 24 }}>Uploaded!</h3>
+                <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 24 }}>Your report has been saved to your vault.</p>
+                <button onClick={closeUpload} style={styles.modalBtn}>Close</button>
+              </div>
+            ) : (
+              <>
+                <div style={styles.modalHeader}>
+                  <h3 style={styles.modalTitle}>Upload Health Report</h3>
+                  <button onClick={closeUpload} style={styles.modalClose}>✕</button>
+                </div>
+
+                {/* Drag & Drop zone */}
+                <div
+                  style={{
+                    ...styles.dropZone,
+                    borderColor: dragOver ? '#3498db' : 'rgba(52,152,219,0.3)',
+                    background: dragOver ? 'rgba(52,152,219,0.1)' : 'rgba(255,255,255,0.03)',
+                  }}
+                  onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
+                  onClick={() => document.getElementById('file-input').click()}
+                >
+                  <FileText size={48} color="#3498db" style={{ marginBottom: 12 }} />
+                  <p style={{ color: '#fff', fontWeight: 600, marginBottom: 6 }}>
+                    {dragOver ? 'Drop files here' : 'Drag & drop files here'}
+                  </p>
+                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
+                    or <span style={{ color: '#3498db', cursor: 'pointer' }}>browse from device</span>
+                  </p>
+                  <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 8 }}>
+                    Supports PDF, JPG, PNG, DOCX
+                  </p>
+                  <input
+                    id="file-input"
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png,.docx"
+                    style={{ display: 'none' }}
+                    onChange={handleFileInput}
+                  />
+                </div>
+
+                {/* File list */}
+                {selectedFiles.length > 0 && (
+                  <div style={styles.fileList}>
+                    {selectedFiles.map((f, i) => (
+                      <div key={i} style={styles.fileItem}>
+                        <FileText size={16} color="#3498db" />
+                        <span style={{ flex: 1, fontSize: 13, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginRight: 8 }}>{(f.size / 1024).toFixed(0)} KB</span>
+                        <button onClick={() => removeFile(i)} style={styles.removeBtn}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleUpload}
+                  disabled={selectedFiles.length === 0 || uploading}
+                  style={{
+                    ...styles.modalBtn,
+                    opacity: selectedFiles.length === 0 || uploading ? 0.7 : 1,
+                    cursor: selectedFiles.length === 0 || uploading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  {uploading ? (
+                    <>
+                      <Activity size={18} className={analyzing ? "pulse-anim" : ""} />
+                      {analyzing ? 'AI is analyzing and generating audio...' : 'Uploading...'}
+                    </>
+                  ) : (
+                    `Extract with AI & Upload ${selectedFiles.length} File${selectedFiles.length !== 1 ? 's' : ''}`
+                  )}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Mobile Logout Button - Only visible on mobile */}
       {windowWidth <= 768 && (
         <div style={{
@@ -559,6 +757,16 @@ function Dashboard() {
           to { transform: rotate(360deg); }
         }
         
+        @keyframes pulse-anim {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.1); opacity: 0.7; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .pulse-anim {
+          animation: pulse-anim 1.5s ease-in-out infinite;
+        }
+
         .icon-3d:hover {
           transform: translateY(-2px);
           background: rgba(255,255,255,0.15);
@@ -1135,6 +1343,107 @@ const styles = {
     cursor: 'pointer',
     transition: 'all 0.3s ease',
   },
+  // ── Modal ──────────────────────────────────────────
+  modalOverlay: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,0.75)',
+    backdropFilter: 'blur(6px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    padding: 16,
+  },
+  modalBox: {
+    background: 'linear-gradient(135deg, #0f1929, #1a2540)',
+    border: '1px solid rgba(52,152,219,0.25)',
+    borderRadius: 24,
+    padding: '28px 28px 24px',
+    width: '100%',
+    maxWidth: 520,
+    boxShadow: '0 30px 80px rgba(0,0,0,0.5)',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 700,
+    margin: 0,
+  },
+  modalClose: {
+    background: 'rgba(255,255,255,0.08)',
+    border: 'none',
+    color: '#fff',
+    width: 34,
+    height: 34,
+    borderRadius: '50%',
+    cursor: 'pointer',
+    fontSize: 16,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dropZone: {
+    border: '2px dashed',
+    borderRadius: 16,
+    padding: '40px 20px',
+    textAlign: 'center',
+    cursor: 'pointer',
+    transition: 'all 0.25s ease',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  fileList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    marginBottom: 16,
+    maxHeight: 180,
+    overflowY: 'auto',
+  },
+  fileItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    background: 'rgba(255,255,255,0.06)',
+    borderRadius: 10,
+    padding: '8px 12px',
+  },
+  removeBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'rgba(255,255,255,0.5)',
+    cursor: 'pointer',
+    fontSize: 14,
+    padding: 2,
+  },
+  modalBtn: {
+    width: '100%',
+    padding: '14px',
+    background: 'linear-gradient(135deg, #3498db, #2980b9)',
+    border: 'none',
+    borderRadius: 14,
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 700,
+    cursor: 'pointer',
+  },
+  successBox: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: '20px 0 8px',
+    textAlign: 'center',
+  },
 };
+
 
 export default Dashboard;

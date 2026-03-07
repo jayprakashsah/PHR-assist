@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { 
-  Activity, FileText, AlertCircle, Building, ShieldCheck, 
-  ChevronRight, Stethoscope, Heart, Clock, MapPin, 
+import {
+  Activity, FileText, AlertCircle, Building, ShieldCheck,
+  ChevronRight, Stethoscope, Heart, Clock, MapPin,
   Phone, Mail, Facebook, Twitter, Instagram, Linkedin,
   Award, Users, Ambulance, Calendar, Bell, Menu,
   X, Download, Upload, Share2, Settings, User,
@@ -63,8 +63,8 @@ function FloatingChat({ isOpen, onClose, onOpen }) {
         "Your health metrics are looking good! Keep up the healthy habits! 🌟",
         "I'm here 24/7 to answer your health questions. What else would you like to know?"
       ];
-      const aiReply = { 
-        role: 'ai', 
+      const aiReply = {
+        role: 'ai',
         text: responses[Math.floor(Math.random() * responses.length)]
       };
       setMessages(prev => [...prev, aiReply]);
@@ -81,7 +81,7 @@ function FloatingChat({ isOpen, onClose, onOpen }) {
 
   if (!isOpen) {
     return (
-      <button 
+      <button
         onClick={onOpen}
         style={floatingChatStyles.floatingChatButton}
         className="floating-chat-btn"
@@ -94,7 +94,7 @@ function FloatingChat({ isOpen, onClose, onOpen }) {
   }
 
   return (
-    <div 
+    <div
       ref={chatRef}
       style={{
         ...floatingChatStyles.floatingChatWindow,
@@ -118,13 +118,13 @@ function FloatingChat({ isOpen, onClose, onOpen }) {
           </div>
         </div>
         <div style={floatingChatStyles.floatingChatHeaderRight}>
-          <button 
+          <button
             onClick={() => setIsMinimized(!isMinimized)}
             style={floatingChatStyles.floatingChatButtonSmall}
           >
             {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
           </button>
-          <button 
+          <button
             onClick={onClose}
             style={floatingChatStyles.floatingChatButtonSmall}
           >
@@ -138,8 +138,8 @@ function FloatingChat({ isOpen, onClose, onOpen }) {
           {/* Chat Messages */}
           <div style={floatingChatStyles.floatingChatMessages}>
             {messages.map((msg, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 style={{
                   ...floatingChatStyles.floatingMessageWrapper,
                   justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
@@ -152,7 +152,7 @@ function FloatingChat({ isOpen, onClose, onOpen }) {
                 )}
                 <div style={{
                   ...floatingChatStyles.floatingMessageBubble,
-                  background: msg.role === 'user' 
+                  background: msg.role === 'user'
                     ? 'linear-gradient(135deg, #9b59b6, #8e44ad)'
                     : '#f1f2f6',
                   color: msg.role === 'user' ? '#ffffff' : '#2c3e50',
@@ -163,7 +163,7 @@ function FloatingChat({ isOpen, onClose, onOpen }) {
                 </div>
               </div>
             ))}
-            
+
             {isLoading && (
               <div style={floatingChatStyles.floatingLoadingWrapper}>
                 <div style={floatingChatStyles.floatingLoadingAvatar}>
@@ -172,13 +172,13 @@ function FloatingChat({ isOpen, onClose, onOpen }) {
                 <div style={floatingChatStyles.floatingLoadingBubble}>
                   <div style={floatingChatStyles.typingIndicator}>
                     <span style={floatingChatStyles.typingDot}></span>
-                    <span style={{...floatingChatStyles.typingDot, animationDelay: '0.2s'}}></span>
-                    <span style={{...floatingChatStyles.typingDot, animationDelay: '0.4s'}}></span>
+                    <span style={{ ...floatingChatStyles.typingDot, animationDelay: '0.2s' }}></span>
+                    <span style={{ ...floatingChatStyles.typingDot, animationDelay: '0.4s' }}></span>
                   </div>
                 </div>
               </div>
             )}
-            
+
             {/* Suggested Questions */}
             {messages.length === 1 && !isLoading && (
               <div style={floatingChatStyles.floatingSuggested}>
@@ -193,20 +193,20 @@ function FloatingChat({ isOpen, onClose, onOpen }) {
                 ))}
               </div>
             )}
-            
+
             <div ref={messagesEndRef} />
           </div>
 
           {/* Input Area */}
           <form onSubmit={handleSend} style={floatingChatStyles.floatingInputArea}>
-            <input 
+            <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type a message..."
               style={floatingChatStyles.floatingInput}
             />
-            <button 
+            <button
               type="submit"
               disabled={!input.trim()}
               style={{
@@ -460,19 +460,68 @@ function Home() {
   const [loading, setLoading] = useState(true);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  
+  const [statsData, setStatsData] = useState({
+    recordCount: '—',
+    reminderCount: '—',
+    emergencyContactCount: '—',
+    healthScore: '—',
+  });
+
   const heroRef = useRef(null);
   const featuresRef = useRef(null);
   const statsRef = useRef(null);
 
+  const userId = localStorage.getItem('userId');
   const userName = localStorage.getItem('userName') || "User";
+
+  // Fetch real stats from backend
+  useEffect(() => {
+    if (!userId) return;
+    const base = 'http://localhost:5001';
+
+    // Fetch reports count
+    fetch(`${base}/api/reports/user/${userId}`)
+      .then(r => r.json())
+      .then(data => {
+        const count = Array.isArray(data) ? data.length : 0;
+        setStatsData(prev => ({ ...prev, recordCount: String(count) }));
+      })
+      .catch(() => setStatsData(prev => ({ ...prev, recordCount: '0' })));
+
+    // Fetch reminders count
+    fetch(`${base}/api/reminders/user/${userId}`)
+      .then(r => r.json())
+      .then(data => {
+        const count = Array.isArray(data) ? data.length : 0;
+        setStatsData(prev => ({ ...prev, reminderCount: String(count) }));
+      })
+      .catch(() => setStatsData(prev => ({ ...prev, reminderCount: '0' })));
+
+    // Fetch profile for emergency contact & health score
+    fetch(`${base}/api/auth/profile/${userId}`)
+      .then(r => r.json())
+      .then(data => {
+        // Emergency contacts: count comma-separated or treat as 1 if set
+        const ec = data.emergencyContact || '';
+        const ecCount = ec.trim() ? ec.split(',').filter(Boolean).length : 0;
+        // Health score: derive from profile completeness (blood group, conditions, allergies)
+        let score = 40;
+        if (data.bloodGroup) score += 20;
+        if (data.medicalConditions) score += 20;
+        if (data.allergies) score += 10;
+        if (data.emergencyContact) score += 10;
+        setStatsData(prev => ({
+          ...prev,
+          emergencyContactCount: String(ecCount),
+          healthScore: String(score),
+        }));
+      })
+      .catch(() => { });
+  }, [userId]);
 
   // Handle window resize
   useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-    };
-    
+    const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -485,7 +534,6 @@ function Home() {
   // Mouse move parallax effect (disabled on mobile)
   useEffect(() => {
     if (windowWidth <= 768) return;
-    
     const handleMouseMove = (e) => {
       setMousePosition({
         x: (e.clientX / window.innerWidth - 0.5) * 20,
@@ -501,47 +549,36 @@ function Home() {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
       setShowScrollTop(window.scrollY > 300);
-
-      // Parallax effects (disabled on mobile)
       if (heroRef.current && windowWidth > 768) {
-        const scrolled = window.scrollY;
-        heroRef.current.style.transform = `translateY(${scrolled * 0.5}px)`;
+        heroRef.current.style.transform = `translateY(${window.scrollY * 0.5}px)`;
       }
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [windowWidth]);
 
-  // Intersection Observer for animations
+  // Intersection observer for animations
   useEffect(() => {
     const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('animate-in');
-          }
-        });
-      },
+      (entries) => entries.forEach(e => e.isIntersecting && e.target.classList.add('animate-in')),
       { threshold: 0.1 }
     );
-
     if (featuresRef.current) observer.observe(featuresRef.current);
     if (statsRef.current) observer.observe(statsRef.current);
-
     return () => observer.disconnect();
   }, []);
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  // Quick stats with animations - responsive values
+  // Quick stats — now driven by real data
+
   const quickStats = [
-    { icon: FileText, label: 'Health Records', value: '12', color: '#3498db', bgColor: 'rgba(52, 152, 219, 0.1)', trend: '+2 this month' },
-    { icon: Calendar, label: 'Appointments', value: '3', color: '#2ecc71', bgColor: 'rgba(46, 204, 113, 0.1)', trend: 'Next: Tomorrow' },
-    { icon: AlertCircle, label: 'Emergency Contacts', value: '5', color: '#e74c3c', bgColor: 'rgba(231, 76, 60, 0.1)', trend: 'All active' },
-    { icon: Activity, label: 'Health Score', value: '85', unit: '%', color: '#9b59b6', bgColor: 'rgba(155, 89, 182, 0.1)', trend: '+5% vs last month' }
+    { icon: FileText, label: 'Health Records', value: statsData.recordCount, color: '#3498db', bgColor: 'rgba(52, 152, 219, 0.1)', trend: 'From your vault' },
+    { icon: Calendar, label: 'Reminders', value: statsData.reminderCount, color: '#2ecc71', bgColor: 'rgba(46, 204, 113, 0.1)', trend: 'Active medicines' },
+    { icon: AlertCircle, label: 'Emergency Contacts', value: statsData.emergencyContactCount, color: '#e74c3c', bgColor: 'rgba(231, 76, 60, 0.1)', trend: 'From your profile' },
+    { icon: Activity, label: 'Health Score', value: statsData.healthScore, unit: '%', color: '#9b59b6', bgColor: 'rgba(155, 89, 182, 0.1)', trend: 'Profile completeness' }
   ];
+
 
   // Features array with AI Health Chat added
   const features = [
@@ -588,7 +625,7 @@ function Home() {
       color: '#f39c12',
       gradient: 'linear-gradient(135deg, #f39c1220, #e67e2220)',
       borderColor: '#f39c1240',
-      link: '/scan',
+      link: '/dashboard',
       status: 'active',
       metrics: ['99% accuracy', 'Multi-format', 'Auto-tagging'],
       iconBg: 'linear-gradient(135deg, #f39c12, #e67e22)'
@@ -600,7 +637,7 @@ function Home() {
       color: '#e84342',
       gradient: 'linear-gradient(135deg, #e8434220, #c0392b20)',
       borderColor: '#e8434240',
-      link: '/vitals',
+      link: '/dashboard',
       status: 'active',
       metrics: ['Real-time ECG', 'Blood pressure', 'Heart rate'],
       iconBg: 'linear-gradient(135deg, #e84342, #c0392b)'
@@ -624,7 +661,7 @@ function Home() {
       color: '#8e44ad',
       gradient: 'linear-gradient(135deg, #8e44ad20, #9b59b620)',
       borderColor: '#8e44ad40',
-      link: '/analytics',
+      link: '/dashboard',
       status: 'coming-soon',
       metrics: ['Risk prediction', 'Prevention tips', 'Health trends'],
       iconBg: 'linear-gradient(135deg, #8e44ad, #9b59b6)'
@@ -636,7 +673,7 @@ function Home() {
       color: '#16a085',
       gradient: 'linear-gradient(135deg, #16a08520, #1abc9c20)',
       borderColor: '#16a08540',
-      link: '/insights',
+      link: '/dashboard',
       status: 'active',
       metrics: ['Daily tips', 'Personalized', 'Evidence-based'],
       iconBg: 'linear-gradient(135deg, #16a085, #1abc9c)'
@@ -648,7 +685,7 @@ function Home() {
       color: '#d35400',
       gradient: 'linear-gradient(135deg, #d3540020, #e67e2220)',
       borderColor: '#d3540040',
-      link: '/records',
+      link: '/dashboard',
       status: 'active',
       metrics: ['Unlimited storage', 'Encrypted', 'Easy access'],
       iconBg: 'linear-gradient(135deg, #d35400, #e67e22)'
@@ -700,7 +737,7 @@ function Home() {
 
   return (
     <div className="home-container" style={styles.container}>
-      
+
       {/* Floating Particles Background - Fewer on mobile */}
       <div style={styles.particles}>
         {[...Array(windowWidth <= 768 ? 10 : 30)].map((_, i) => (
@@ -735,7 +772,7 @@ function Home() {
             <div style={styles.shape3}></div>
           </div>
         </div>
-        
+
         <div style={{
           ...styles.heroContent,
           gridTemplateColumns: windowWidth <= 1024 ? '1fr' : '1fr 1fr',
@@ -746,7 +783,7 @@ function Home() {
               <Sparkles size={16} color="#3498db" />
               <span>Welcome back to your health command center</span>
             </div>
-            
+
             <h1 style={{
               ...styles.heroTitle,
               fontSize: windowWidth <= 480 ? '32px' : windowWidth <= 768 ? '40px' : 'clamp(40px, 6vw, 64px)',
@@ -756,7 +793,7 @@ function Home() {
                 <span style={styles.titleGlow}></span>
               </span>
             </h1>
-            
+
             <p style={{
               ...styles.heroSubtitle,
               fontSize: windowWidth <= 480 ? '14px' : windowWidth <= 768 ? '15px' : 'clamp(14px, 2vw, 18px)',
@@ -771,8 +808,8 @@ function Home() {
               gap: windowWidth <= 480 ? '12px' : '20px',
             }} ref={statsRef}>
               {quickStats.map((stat, index) => (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
                   style={{
                     ...styles.statCard,
                     padding: windowWidth <= 480 ? '15px' : '20px',
@@ -822,14 +859,14 @@ function Home() {
                 <ChevronRight size={18} style={styles.btnIcon} />
                 <div style={styles.btnGlow}></div>
               </Link>
-              
-              <Link to="/scan" style={{
+
+              <Link to="/dashboard" style={{
                 ...styles.secondaryButton,
                 padding: windowWidth <= 480 ? '14px 24px' : '16px 32px',
                 justifyContent: windowWidth <= 480 ? 'center' : 'flex-start',
               }} className="btn-outline-3d">
                 <Scan size={18} />
-                <span>Quick Scan</span>
+                <span>Upload Report</span>
               </Link>
             </div>
 
@@ -938,17 +975,17 @@ function Home() {
 
         <div style={{
           ...styles.featuresGrid,
-          gridTemplateColumns: windowWidth <= 480 
-            ? '1fr' 
-            : windowWidth <= 768 
-              ? 'repeat(2, 1fr)' 
+          gridTemplateColumns: windowWidth <= 480
+            ? '1fr'
+            : windowWidth <= 768
+              ? 'repeat(2, 1fr)'
               : 'repeat(auto-fit, minmax(350px, 1fr))',
           gap: windowWidth <= 480 ? '15px' : '30px',
         }}>
           {features.map((feature, index) => (
-            <Link 
-              to={feature.link} 
-              key={index} 
+            <Link
+              to={feature.link}
+              key={index}
               style={{
                 ...styles.featureCard,
                 background: feature.gradient,
@@ -965,11 +1002,11 @@ function Home() {
                     <div style={styles.iconRipple}></div>
                   )}
                 </div>
-                
+
                 <div style={styles.featureContent}>
                   <h3 style={{ ...styles.featureTitle, color: feature.color, fontSize: windowWidth <= 480 ? '18px' : '22px' }}>{feature.title}</h3>
                   <p style={styles.featureDescription}>{feature.description}</p>
-                  
+
                   {/* Hide metrics on very small mobile */}
                   {windowWidth > 480 && (
                     <div style={styles.featureMetrics}>
@@ -982,7 +1019,7 @@ function Home() {
                     </div>
                   )}
                 </div>
-                
+
                 <div style={styles.featureFooter}>
                   {feature.status === 'coming-soon' ? (
                     <span style={styles.comingSoonBadge}>
@@ -1026,10 +1063,10 @@ function Home() {
 
         <div style={{
           ...styles.testimonialsGrid,
-          gridTemplateColumns: windowWidth <= 480 
-            ? '1fr' 
-            : windowWidth <= 768 
-              ? 'repeat(2, 1fr)' 
+          gridTemplateColumns: windowWidth <= 480
+            ? '1fr'
+            : windowWidth <= 768
+              ? 'repeat(2, 1fr)'
               : 'repeat(auto-fit, minmax(300px, 1fr))',
           gap: windowWidth <= 480 ? '15px' : '30px',
         }}>
@@ -1058,10 +1095,10 @@ function Home() {
       }}>
         <div style={{
           ...styles.statsContainer,
-          gridTemplateColumns: windowWidth <= 480 
-            ? '1fr' 
-            : windowWidth <= 768 
-              ? 'repeat(2, 1fr)' 
+          gridTemplateColumns: windowWidth <= 480
+            ? '1fr'
+            : windowWidth <= 768
+              ? 'repeat(2, 1fr)'
               : 'repeat(auto-fit, minmax(200px, 1fr))',
           gap: windowWidth <= 480 ? '15px' : '30px',
         }}>
@@ -1242,7 +1279,7 @@ function Home() {
       )}
 
       {/* Floating Chat Component */}
-      <FloatingChat 
+      <FloatingChat
         isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}
         onOpen={() => setIsChatOpen(true)}

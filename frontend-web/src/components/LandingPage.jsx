@@ -1542,16 +1542,9 @@ const lp = StyleSheet.create({
       animation: "pulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1)",
     }),
   },
-  emergencyIconBg: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(220, 38, 38, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 
   // Emergency 2x2 chips
+
   emergencyChipGrid: {
     flex: 1,
     minWidth: 280,
