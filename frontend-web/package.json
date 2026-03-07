@@ -16,9 +16,14 @@
     "lucide-react": "^0.575.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+<<<<<<< HEAD
     "react-native-web": "^0.21.2",
     "react-router-dom": "^7.13.1",
     "tailwindcss": "^4.2.1"
+=======
+    "react-router-dom": "^7.13.1",
+    "recharts": "^3.7.0"
+>>>>>>> e5788e615c75eae463b3b1553d6c2202668a334a
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

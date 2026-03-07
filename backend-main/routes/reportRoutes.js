@@ -82,4 +82,43 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+
+// --- DELETE A REPORT ---
+router.delete('/:id', async (req, res) => {
+  try {
+    const reportId = req.params.id;
+    const deletedReport = await Report.findByIdAndDelete(reportId);
+    
+    if (!deletedReport) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    res.status(200).json({ message: "Report deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting report", error: error.message });
+  }
+});
+
+// --- UPDATE A REPORT ---
+router.put('/:id', async (req, res) => {
+  try {
+    const reportId = req.params.id;
+    // Find the report by ID and update it with the new data from React
+    const updatedReport = await Report.findByIdAndUpdate(
+      reportId,
+      req.body,
+      { new: true } // This tells MongoDB to return the newly updated version
+    );
+    
+    if (!updatedReport) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    res.status(200).json(updatedReport);
+  } catch (error) {
+    res.status(500).json({ message: "Error updating report", error: error.message });
+  }
+});
+
+
 module.exports = router;

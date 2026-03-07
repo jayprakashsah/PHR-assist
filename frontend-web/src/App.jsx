@@ -14,6 +14,7 @@ import Dashboard from './pages/Dashboard';
 import Emergency from './pages/Emergency';
 import Hospitals from './pages/Hospitals';
 import Reminders from './pages/Reminders';
+<<<<<<< HEAD
 import ChatAgent from './pages/ChatAgent';
 import Profile from './pages/Profile';
 
@@ -44,14 +45,50 @@ function LandingPageWrapper() {
   const handleGetStarted = () => navigate('/login');
   const handleActivateSOS = () => navigate('/emergency');
   const toggleLang = () => setLang((l) => (l === 'en' ? 'ta' : 'en'));
+=======
+import ConfirmReminders from './pages/ConfirmReminders';
+import EditReport from './pages/EditReport';
+import Lifestyle from './pages/Lifestyle';
+>>>>>>> e5788e615c75eae463b3b1553d6c2202668a334a
 
   return (
+<<<<<<< HEAD
     <LandingPage
       onGetStarted={handleGetStarted}
       onActivateSOS={handleActivateSOS}
       lang={lang}
       toggleLang={toggleLang}
     />
+=======
+    <Router>
+      <Routes>
+        {/* PUBLIC ROUTES */}
+        {/* 1. The Emergency Page is now the absolute first screen! */}
+        <Route path="/" element={<Emergency />} />
+        
+        {/* 2. Login is moved to its own page */}
+        <Route path="/login" element={<Login />} />
+        
+        {/* PROTECTED ROUTES: Wrapped inside the MainLayout frame */}
+        <Route element={<MainLayout />}>
+          <Route path="/home" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/scan" element={<Scanner />} />
+          <Route path="/profile" element={<Profile />} />
+<Route path="/hospitals" element={<Hospitals />} />          {/* We also keep Emergency available inside the dashboard just in case */}
+          <Route path="/emergency" element={<Emergency />} />
+          <Route path="/chat" element={<ChatAgent />} />
+          <Route path="/reminders" element={<Reminders />} />
+          <Route path="/confirm-reminders" element={<ConfirmReminders />} />
+          <Route path="/edit/:id" element={<EditReport />} />
+          <Route path="/lifestyle" element={<Lifestyle />} />
+        </Route>
+
+        {/* Catch-all redirects back to the emergency home page */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </Router>
+>>>>>>> e5788e615c75eae463b3b1553d6c2202668a334a
   );
 }
 
